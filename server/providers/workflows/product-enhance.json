@@ -1,0 +1,73 @@
+{
+  "1": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "__INPUT_IMAGE__"
+    }
+  },
+  "1a": {
+    "class_type": "ImageScaleToTotalPixels",
+    "inputs": {
+      "image": ["1", 0],
+      "upscale_method": "lanczos",
+      "megapixels": 1.0,
+      "resolution_steps": 1
+    }
+  },
+  "2": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": {
+      "ckpt_name": "__CHECKPOINT__"
+    }
+  },
+  "3": {
+    "class_type": "VAEEncode",
+    "inputs": {
+      "pixels": ["1a", 0],
+      "vae": ["2", 2]
+    }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "professional e-commerce product photo, exact same product, preserve original shape, proportions, packaging, logo, brand name and every printed character, realistic studio lighting, clean natural colors, subtle sharpness, crisp details, high quality commercial photography",
+      "clip": ["2", 1]
+    }
+  },
+  "5": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "different product, extra product, missing product, changed ingredients, altered packaging, changed logo, changed brand name, misspelled text, unreadable text, new text, watermark, duplicate object, deformed object, warped geometry, cropped product, oversaturated colors, unrealistic reflections, heavy style, illustration, blurry, low quality",
+      "clip": ["2", 1]
+    }
+  },
+  "6": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": "__SEED__",
+      "steps": 20,
+      "cfg": 4.5,
+      "sampler_name": "dpmpp_2m_sde",
+      "scheduler": "karras",
+      "denoise": 0.22,
+      "model": ["2", 0],
+      "positive": ["4", 0],
+      "negative": ["5", 0],
+      "latent_image": ["3", 0]
+    }
+  },
+  "7": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["6", 0],
+      "vae": ["2", 2]
+    }
+  },
+  "8": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "BirenProductEnhance",
+      "images": ["7", 0]
+    }
+  }
+}

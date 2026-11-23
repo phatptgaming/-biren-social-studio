@@ -1,17 +1,34 @@
 import { serverConfig } from '../config';
+import { getSetting } from '../db';
+import { decryptSecret } from '../crypto';
 
 interface GeminiResponse { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>; error?: { message?: string } }
 
 function getApiKey(): string {
-  const { getSetting } = require('../db') as typeof import('../db');
-  const { decryptSecret } = require('../crypto') as typeof import('../crypto');
   const stored = getSetting('gemini_api_key');
-  return stored ? (decryptSecret(stored) || '') : serverConfig.geminiApiKey;
+  return stored ? (decryptSecret(stored) || serverConfig.geminiApiKey) : serverConfig.geminiApiKey;
 }
 
 export function getGeminiModel(): string {
-  const { getSetting } = require('../db') as typeof import('../db');
   return getSetting('gemini_model') || serverConfig.geminiModel;
+}
+
+async function callGemini(key: string, body: unknown, timeout = 60_000): Promise<GeminiResponse> {
+  let response: Response;
+  try {
+    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getGeminiModel())}:generateContent?key=${encodeURIComponent(key)}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(timeout)
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'TimeoutError') throw new Error('Gemini phản hồi quá lâu. Vui lòng thử lại.');
+    throw new Error('Không kết nối được Gemini. Kiểm tra mạng và API Key.');
+  }
+  const data = await response.json().catch(() => ({})) as GeminiResponse;
+  if (!response.ok) throw new Error(data.error?.message || `Gemini trả về HTTP ${response.status}.`);
+  return data;
 }
 
 export async function generateCaption(input: string, action: 'generate' | 'rewrite' | 'shorten' | 'variant'): Promise<string> {
@@ -32,12 +49,7 @@ Quy tắc bắt buộc:
 
 Thông tin/bài hiện tại của người dùng:
 ${input}`;
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getGeminiModel())}:generateContent?key=${encodeURIComponent(apiKey)}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.65, maxOutputTokens: 1000 } })
-  });
-  const data = await response.json() as GeminiResponse;
-  if (!response.ok) throw new Error(data.error?.message || `Gemini trả về HTTP ${response.status}.`);
+  const data = await callGemini(apiKey, { contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.65, maxOutputTokens: 1000 } });
   const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim();
   if (!text) throw new Error('Gemini không trả về nội dung.');
   return text;
@@ -46,11 +58,8 @@ ${input}`;
 export async function testGemini(apiKeyOverride?: string): Promise<{ model: string; message: string }> {
   const key = apiKeyOverride || getApiKey();
   if (!key) throw new Error('Chưa có Gemini API Key.');
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getGeminiModel())}:generateContent?key=${encodeURIComponent(key)}`, {
-    method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: 'Trả lời đúng một từ: OK' }] }], generationConfig: { maxOutputTokens: 5 } })
-  });
-  const data = await response.json() as GeminiResponse;
-  if (!response.ok) throw new Error(data.error?.message || `Gemini trả về HTTP ${response.status}.`);
+  const data = await callGemini(key, { contents: [{ parts: [{ text: 'Trả lời đúng một từ: OK' }] }], generationConfig: { maxOutputTokens: 10 } }, 30_000);
+  const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text || '').join('').trim();
+  if (!text) throw new Error('Gemini phản hồi nhưng không có nội dung xác nhận.');
   return { model: getGeminiModel(), message: 'Kết nối Gemini thành công.' };
 }

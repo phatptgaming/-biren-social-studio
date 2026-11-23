@@ -1,0 +1,13 @@
+{
+  "id": "sd15-base",
+  "displayName": "Stable Diffusion v1.5 base checkpoint",
+  "fileName": "v1-5-pruned-emaonly.safetensors",
+  "minVramGb": 6,
+  "approxSizeGb": 4,
+  "sizeBytes": 4265146304,
+  "sha256": "6ce0161689b3853acaa03779ec93eafe75a02f4ced659bee03f50797806fa2fa",
+  "license": "CreativeML OpenRAIL-M",
+  "licenseUrl": "https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5",
+  "url": "https://huggingface.co/stable-diffusion-v1-5/stable-diffusion-v1-5/resolve/main/v1-5-pruned-emaonly.safetensors",
+  "notes": "Public, non-gated download. CreativeML OpenRAIL-M allows commercial use subject to its use restrictions. The installer verifies size and SHA-256 before use."
+}

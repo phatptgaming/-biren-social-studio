@@ -8,10 +8,18 @@
     "dev": "concurrently -k \"vite\" \"tsx watch server/index.ts\"",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
-    "build:server": "tsc -p tsconfig.server.json",
+    "build:server": "tsc -p tsconfig.server.json && node scripts/copy-workflows.mjs",
     "start": "node dist/server/index.js",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
-    "check": "npm run typecheck && npm run build"
+    "check": "npm run typecheck && npm run build",
+    "comfy:check": "powershell -ExecutionPolicy Bypass -File .\\scripts\\comfyui\\Manage-ComfyUI.ps1 -Action check",
+    "comfy:install": "powershell -ExecutionPolicy Bypass -File .\\scripts\\comfyui\\Manage-ComfyUI.ps1 -Action install",
+    "comfy:start": "powershell -ExecutionPolicy Bypass -File .\\scripts\\comfyui\\Manage-ComfyUI.ps1 -Action start",
+    "comfy:stop": "powershell -ExecutionPolicy Bypass -File .\\scripts\\comfyui\\Manage-ComfyUI.ps1 -Action stop",
+    "comfy:status": "powershell -ExecutionPolicy Bypass -File .\\scripts\\comfyui\\Manage-ComfyUI.ps1 -Action status"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "better-sqlite3": "^11.8.1",

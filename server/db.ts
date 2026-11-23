@@ -62,5 +62,6 @@ export function deleteOAuthState(state: string): void {
 }
 
 export function cleanupOAuthStates(): void {
-  db.prepare("DELETE FROM oauth_states WHERE created_at < datetime('now', '-15 minutes')").run();
+  const cutoff = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  db.prepare('DELETE FROM oauth_states WHERE created_at < ?').run(cutoff);
 }
